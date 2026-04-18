@@ -475,6 +475,10 @@ type RawConfig struct {
 // Set via the --override-json CLI flag (see main.go).
 var OverrideJSONPath string
 
+// mishkaPatch is an optional hook applied after override JSON has been merged.
+// Registered via init() in patch_mishka.go when built with the mishka tag; nil otherwise.
+var mishkaPatch func(cfg *RawConfig)
+
 // Parse config
 func Parse(buf []byte) (*Config, error) {
 	rawCfg, err := UnmarshalRawConfig(buf)
@@ -490,6 +494,10 @@ func Parse(buf []byte) (*Config, error) {
 		} else if err != nil {
 			log.Warnln("Read override.json failed: %s", err.Error())
 		}
+	}
+
+	if mishkaPatch != nil {
+		mishkaPatch(rawCfg)
 	}
 
 	return ParseRawConfig(rawCfg)
