@@ -1,11 +1,13 @@
 package config
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
 	"net/netip"
 	"net/url"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -466,11 +468,25 @@ type RawConfig struct {
 	ClashForAndroid RawClashForAndroid `yaml:"clash-for-android" json:"clash-for-android"`
 }
 
+// OverrideJSONPath points to an optional JSON file whose fields override the parsed RawConfig.
+// Set via the --override-json CLI flag (see main.go).
+var OverrideJSONPath string
+
 // Parse config
 func Parse(buf []byte) (*Config, error) {
 	rawCfg, err := UnmarshalRawConfig(buf)
 	if err != nil {
 		return nil, err
+	}
+
+	if OverrideJSONPath != "" {
+		if data, err := os.ReadFile(OverrideJSONPath); err == nil && len(data) > 0 {
+			if err := json.Unmarshal(data, rawCfg); err != nil {
+				log.Warnln("Apply override.json failed: %s", err.Error())
+			}
+		} else if err != nil {
+			log.Warnln("Read override.json failed: %s", err.Error())
+		}
 	}
 
 	return ParseRawConfig(rawCfg)
