@@ -43,23 +43,9 @@ func init() {
 	mishkaPatch = patchMishka
 }
 
-// patchMishka adjusts the parsed RawConfig for Android usage:
-//   - When the subscription has DNS disabled, inject a sensible default
-//     (fake-ip mode, a mix of domestic and international nameservers, and a
-//     fake-ip filter list covering STUN, game consoles, captive portals, etc.).
-//     Applies to all tunnel modes (VPN / ROOT TUN / ROOT TPROXY) because dns
-//     hijack/redirect leaves no responder when DNS is off.
-//   - In VPN mode only (FileDescriptor > 0): when AppendSystemDNS is set
-//     (either by the subscription or implied by the default injection above),
-//     append "system://" so Android system DNS acts as a last-resort fallback.
-//     Skipped under ROOT modes — ROOT TUN would re-enter sing-tun's catch-all
-//     route and loop, and ROOT TPROXY has no Kotlin-side UpdateSystemDNS feed
-//     either, so the entry would be a dead nameserver slot.
-//   - When running in VPN mode (FileDescriptor > 0), rebuild cfg.Tun with a
-//     whitelist of fields required by sing-tun's fd path, dropping any
-//     subscription-supplied Linux-only fields that would otherwise crash
-//     sing-tun on Android (auto-redirect, iproute2-*, include-uid,
-//     include-interface, route-address, etc.).
+// 未启用 DNS 时补 fake-ip 配置，否则 TUN 接管查询后无人应答。
+// VPN 的 AppendSystemDNS 把 system:// 加入主 nameserver 并发查询，并非失败后才回退。
+// ROOT 不自动追加系统 DNS；fd 模式只保留 Android 可用的 TUN 字段。
 func patchMishka(cfg *RawConfig) {
 	if !cfg.DNS.Enable {
 		cfg.DNS = DefaultRawConfig().DNS
