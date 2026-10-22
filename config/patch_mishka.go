@@ -3,6 +3,8 @@
 package config
 
 import (
+	"slices"
+
 	C "github.com/metacubex/mihomo/constant"
 )
 
@@ -44,8 +46,8 @@ func init() {
 }
 
 // 未启用 DNS 时补 fake-ip 配置，否则 TUN 接管查询后无人应答。
-// VPN 的 AppendSystemDNS 把 system:// 加入主 nameserver 并发查询，并非失败后才回退。
-// ROOT 不自动追加系统 DNS；fd 模式只保留 Android 可用的 TUN 字段。
+// AppendSystemDNS 把 system:// 加入主 nameserver 并发查询，并非失败后才回退。
+// fd 模式只保留 Android 可用的 TUN 字段。
 func patchMishka(cfg *RawConfig) {
 	if !cfg.DNS.Enable {
 		cfg.DNS = DefaultRawConfig().DNS
@@ -54,11 +56,9 @@ func patchMishka(cfg *RawConfig) {
 		cfg.DNS.EnhancedMode = C.DNSFakeIP
 		cfg.DNS.FakeIPRange = mishkaDefaultFakeIPRange
 		cfg.DNS.FakeIPFilter = mishkaDefaultFakeIPFilter
-		if cfg.Tun.FileDescriptor > 0 {
-			cfg.ClashForAndroid.AppendSystemDNS = true
-		}
+		cfg.ClashForAndroid.AppendSystemDNS = true
 	}
-	if cfg.Tun.FileDescriptor > 0 && cfg.ClashForAndroid.AppendSystemDNS {
+	if cfg.ClashForAndroid.AppendSystemDNS && !slices.Contains(cfg.DNS.NameServer, "system://") && !slices.Contains(cfg.DNS.NameServer, "system") {
 		cfg.DNS.NameServer = append(cfg.DNS.NameServer, "system://")
 	}
 
