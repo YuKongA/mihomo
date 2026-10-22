@@ -102,8 +102,15 @@ func ResolveIPv4(ctx context.Context, host string) (netip.Addr, error) {
 	return ResolveIPv4WithResolver(ctx, host, DefaultResolver)
 }
 
-// LookupIPv6WithResolver same as LookupIPv6, but with a resolver
 func LookupIPv6WithResolver(ctx context.Context, host string, r Resolver) ([]netip.Addr, error) {
+	if ip, err := netip.ParseAddr(host); err == nil {
+		ip = ip.Unmap()
+		if ip.Is6() {
+			return []netip.Addr{ip}, nil
+		}
+		return nil, ErrIPVersion
+	}
+
 	if DisableIPv6 {
 		return nil, ErrIPv6Disabled
 	}
@@ -114,14 +121,6 @@ func LookupIPv6WithResolver(ctx context.Context, host string, r Resolver) ([]net
 		}); len(addrs) > 0 {
 			return addrs, nil
 		}
-	}
-
-	if ip, err := netip.ParseAddr(host); err == nil {
-		ip = ip.Unmap()
-		if ip.Is6() {
-			return []netip.Addr{ip}, nil
-		}
-		return nil, ErrIPVersion
 	}
 
 	if r != nil && r.Invalid() {
@@ -151,8 +150,12 @@ func ResolveIPv6(ctx context.Context, host string) (netip.Addr, error) {
 	return ResolveIPv6WithResolver(ctx, host, DefaultResolver)
 }
 
-// LookupIPWithResolver same as LookupIP, but with a resolver
 func LookupIPWithResolver(ctx context.Context, host string, r Resolver) ([]netip.Addr, error) {
+	if ip, err := netip.ParseAddr(host); err == nil {
+		ip = ip.Unmap()
+		return []netip.Addr{ip}, nil
+	}
+
 	if node, ok := DefaultHosts.Search(host, false); ok {
 		return node.IPs, nil
 	}
@@ -164,11 +167,6 @@ func LookupIPWithResolver(ctx context.Context, host string, r Resolver) ([]netip
 		return r.LookupIP(ctx, host)
 	} else if DisableIPv6 {
 		return LookupIPv4WithResolver(ctx, host, r)
-	}
-
-	if ip, err := netip.ParseAddr(host); err == nil {
-		ip = ip.Unmap()
-		return []netip.Addr{ip}, nil
 	}
 
 	return SystemResolver.LookupIP(ctx, host)
