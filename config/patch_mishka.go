@@ -64,20 +64,28 @@ func patchMishka(cfg *RawConfig) {
 
 	// ROOT 模式（fd == 0）走 mihomo TUN（netlink + tun.New()）路径。
 	if cfg.Tun.FileDescriptor > 0 {
+		cfg.Interface = ""
+		cfg.RoutingMark = 0
+		cfg.ExternalControllerTLS = ""
+		cfg.Listeners = slices.DeleteFunc(cfg.Listeners, func(mapping map[string]any) bool {
+			switch mapping["type"] {
+			case "tun", "tproxy", "redir":
+				return true
+			default:
+				return false
+			}
+		})
 		// 白名单外的所有 RawTun 字段归零。
 		cfg.Tun = RawTun{
-			Enable:               cfg.Tun.Enable,
-			Device:               cfg.Tun.Device,
-			Stack:                cfg.Tun.Stack,
-			DNSHijack:            cfg.Tun.DNSHijack,
-			AutoRoute:            cfg.Tun.AutoRoute,
-			AutoDetectInterface:  cfg.Tun.AutoDetectInterface,
-			Inet6Address:         cfg.Tun.Inet6Address,
-			MTU:                  cfg.Tun.MTU,
-			CongestionController: cfg.Tun.CongestionController,
-			FileDescriptor:       cfg.Tun.FileDescriptor,
-			IncludePackage:       cfg.Tun.IncludePackage,
-			ExcludePackage:       cfg.Tun.ExcludePackage,
+			Enable:              cfg.Tun.Enable,
+			Device:              cfg.Tun.Device,
+			Stack:               cfg.Tun.Stack,
+			DNSHijack:           cfg.Tun.DNSHijack,
+			AutoRoute:           cfg.Tun.AutoRoute,
+			AutoDetectInterface: cfg.Tun.AutoDetectInterface,
+			Inet6Address:        cfg.Tun.Inet6Address,
+			MTU:                 cfg.Tun.MTU,
+			FileDescriptor:      cfg.Tun.FileDescriptor,
 		}
 	}
 }

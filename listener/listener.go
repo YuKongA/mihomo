@@ -81,6 +81,13 @@ func GetTunConf() LC.Tun {
 	return tunLister.Config()
 }
 
+// LastTunConf 可能记录失败的配置，就绪判断必须查看实际 listener。
+func TunListenerReady() bool {
+	tunMux.Lock()
+	defer tunMux.Unlock()
+	return tunLister != nil
+}
+
 func GetTuicConf() LC.TuicServer {
 	if tuicListener == nil {
 		return LC.TuicServer{Enable: false}
